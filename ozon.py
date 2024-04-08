@@ -15,8 +15,8 @@ headers = {
 }
 
 url = 'https://api-seller.ozon.ru/v3/posting/fbs/list'
-yesterday = datetime.date.today()- datetime.timedelta(days=1)
-after_10_days = yesterday + datetime.timedelta(days=10)
+yesterday = datetime.date.today()- datetime.timedelta(days=20)
+after_10_days = yesterday + datetime.timedelta(days=20)
 payload = json.dumps({
     "dir": "ASC",
     "filter": {
@@ -30,33 +30,37 @@ payload = json.dumps({
 
 })
 resp_data = requests.post(url, headers=headers, data=payload).json()
+# with open('file.json', 'w', encoding='utf-8') as file:
+#     json.dump(resp_data, file, indent=4, ensure_ascii=False)
 
 today = datetime.date.today()
 tomorrow = today + datetime.timedelta(days=1)
+date_name=str(tomorrow).split('-')
+date_name=f"{date_name[2]}-{date_name[1]}-{date_name[0]}".replace('-','.')
 
-filename=f'market - заказы {str(tomorrow)}.xlsx'
+filename=f'Заказы {str(date_name)}.xlsx'
 
 def ozon():
     book = openpyxl.load_workbook(filename)
     sheet=book.active
-    for i in range(6, 10):
-        sheet.cell(column=i, row=1).value = 'Ozon'
-    sheet.merge_cells('F1:J1')
-    row=2
+    row=1
 
     for i in resp_data['result']['postings']:
         date_time_str=i['shipment_date'][:10]
         date= datetime.datetime.strptime(date_time_str, '%Y-%m-%d')
         date=date.date()
         if date==tomorrow:
+            date=str(date).split('-')
+            date = f"{date[2]}-{date[1]}-{date[0]}"
             sku=i['products'][0]['offer_id']
             quantity=i['products'][0]['quantity']
-
+            posting_number=i['posting_number']
             sheet.cell(column=6, row=row).value = sku
             sheet.cell(column=7, row=row).value = quantity
-            sheet.cell(column=8, row=row).value = date
+            sheet.cell(column=8, row=row).value = str(date).replace('-','.')
             sheet.cell(column=9, row=row).value = 'FBS'
             sheet.cell(column=10, row=row).value = i['delivery_method']['warehouse']
+            sheet.cell(column=11, row=row).value = posting_number
             row+=1
             book.save(filename)
     book.close()
